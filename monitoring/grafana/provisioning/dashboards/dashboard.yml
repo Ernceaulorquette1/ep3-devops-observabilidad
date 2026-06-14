@@ -1,0 +1,11 @@
+# Carga automaticamente los dashboards JSON de /var/lib/grafana/dashboards.
+apiVersion: 1
+providers:
+  - name: "Dashboards EP3"
+    orgId: 1
+    folder: "Microservicio EP3"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

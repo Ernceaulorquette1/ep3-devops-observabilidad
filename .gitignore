@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.env
+*.log
+.venv/
+venv/
+grafana-data/
+prometheus-data/

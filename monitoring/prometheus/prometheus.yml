@@ -1,0 +1,20 @@
+# Configuracion de Prometheus (IE1)
+# Define cada cuanto recolecta metricas y de que servicios.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert.rules.yml"
+
+scrape_configs:
+  # Metricas del propio Prometheus
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Metricas del microservicio (endpoint /metrics)
+  - job_name: "microservicio-ep3"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["microservicio:8000"]

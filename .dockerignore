@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+tests/
+.git/
+.github/
+k8s/
+monitoring/
+docs/
+*.md

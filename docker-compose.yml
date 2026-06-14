@@ -1,0 +1,52 @@
+# ============================================================
+# Stack de observabilidad EP3 (entorno simulado local)
+#   - microservicio  : la app FastAPI instrumentada
+#   - prometheus     : recolecta metricas desde /metrics (IE1)
+#   - grafana        : dashboards con las metricas clave (IE3)
+# Levantar con:  docker compose up --build
+#   App        -> http://localhost:8000
+#   Metricas   -> http://localhost:8000/metrics
+#   Prometheus -> http://localhost:9090
+#   Grafana    -> http://localhost:3000  (admin / admin)
+# ============================================================
+services:
+  microservicio:
+    build: .
+    container_name: microservicio-ep3
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus-ep3
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    depends_on:
+      - microservicio
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: grafana-ep3
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped

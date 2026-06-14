@@ -1,0 +1,149 @@
+# ============================================================
+# Pipeline CI/CD - EP3 DevOps (Observabilidad y cumplimiento)
+# ------------------------------------------------------------
+# Cubre:
+#   - Tests + cobertura          -> alimenta el dashboard (IE3)
+#   - SonarCloud Quality Gate    -> cumplimiento normativo (IE5)
+#   - Trivy (escaneo seguridad)  -> DETIENE el pipeline si hay CVE critico (IE6)
+#   - Snyk (dependencias)        -> cumplimiento (IE5)
+#   - Build & push de imagen     -> despliegue (IE2)
+#   - Push de metricas (deploy/cobertura) a Prometheus Pushgateway (IE3)
+# ============================================================
+name: CI-CD EP3
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ----------------------------------------------------------
+  # 1) Pruebas + cobertura (IE3)
+  # ----------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Sonar necesita el historial completo
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar pruebas con cobertura
+        run: pytest --cov=app --cov-report=xml --cov-report=term
+
+      - name: Guardar reporte de cobertura
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
+
+  # ----------------------------------------------------------
+  # 2) Cumplimiento de calidad: SonarCloud Quality Gate (IE5 + IE6)
+  #    Si el Quality Gate falla, el job falla y se detiene el pipeline.
+  # ----------------------------------------------------------
+  calidad:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias y generar cobertura
+        run: |
+          pip install -r requirements.txt
+          pytest --cov=app --cov-report=xml
+
+      - name: Analisis SonarCloud
+        uses: SonarSource/sonarqube-scan-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      # IE6: espera el resultado del Quality Gate. Si NO pasa, falla el build.
+      - name: Verificar Quality Gate (rompe el build si falla)
+        uses: SonarSource/sonarqube-quality-gate-action@v1
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # ----------------------------------------------------------
+  # 3) Seguridad: escaneo de dependencias (Snyk) - IE5
+  # ----------------------------------------------------------
+  seguridad-dependencias:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Snyk - escaneo de dependencias
+        uses: snyk/actions/python@master
+        continue-on-error: false   # IE6: si hay vuln. alta, detiene el pipeline
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  # ----------------------------------------------------------
+  # 4) Build de imagen + escaneo Trivy que DETIENE el pipeline (IE6)
+  # ----------------------------------------------------------
+  build-y-scan:
+    needs: [calidad, seguridad-dependencias]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build de la imagen Docker
+        run: docker build -t microservicio-ep3:${{ github.sha }} .
+
+      - name: Escaneo de seguridad de la imagen (Trivy)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: microservicio-ep3:${{ github.sha }}
+          format: table
+          # IE6: exit-code 1 -> si hay CVE CRITICAL/HIGH, el job FALLA y se detiene todo
+          exit-code: "1"
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+  # ----------------------------------------------------------
+  # 5) Despliegue simulado + push de metricas de pipeline (IE2 + IE3)
+  #    Solo corre en main y si TODO lo anterior paso.
+  # ----------------------------------------------------------
+  deploy:
+    needs: build-y-scan
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login a GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build & push de la imagen
+        run: |
+          INICIO=$(date +%s)
+          docker build -t ghcr.io/${{ github.repository_owner }}/microservicio-ep3:latest .
+          docker push ghcr.io/${{ github.repository_owner }}/microservicio-ep3:latest
+          FIN=$(date +%s)
+          echo "DEPLOY_DURATION=$((FIN-INICIO))" >> $GITHUB_ENV
+
+      - name: Desplegar en Kubernetes (entorno simulado)
+        run: |
+          echo "kubectl apply -f k8s/   # se ejecuta contra el cluster configurado"
+          # kubectl apply -f k8s/
+
+      # IE3: empuja tiempo de despliegue y cobertura a Prometheus para el dashboard
+      - name: Publicar metricas de pipeline a Pushgateway
+        run: |
+          echo "deploy_duration_seconds ${DEPLOY_DURATION}" | \
+            curl --data-binary @- http://PUSHGATEWAY:9091/metrics/job/ci_ep3 || true

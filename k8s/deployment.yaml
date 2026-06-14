@@ -1,0 +1,50 @@
+# Deployment del microservicio (IE2)
+# Incluye: probes de liveness/readiness, limites de recursos y annotations
+# para que Prometheus lo descubra y scrapee automaticamente.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: microservicio-ep3
+  labels:
+    app: microservicio-ep3
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: microservicio-ep3
+  template:
+    metadata:
+      labels:
+        app: microservicio-ep3
+      annotations:
+        # Habilita el auto-descubrimiento por Prometheus
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: microservicio
+          image: ghcr.io/USUARIO/microservicio-ep3:latest   # <-- reemplaza USUARIO
+          ports:
+            - containerPort: 8000
+          # Probes para observabilidad y autorecuperacion (IE2)
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          # Limites de recursos -> permiten medir CPU/memoria (IE3) y escalar (HPA)
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"

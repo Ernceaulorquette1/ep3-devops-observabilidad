@@ -1,0 +1,33 @@
+# Reglas de alerta (IE1) - detectan anomalias en el comportamiento del servicio.
+groups:
+  - name: microservicio-alertas
+    rules:
+      # Disponibilidad: el servicio dejo de responder al scrape
+      - alert: ServicioCaido
+        expr: up{job="microservicio-ep3"} == 0
+        for: 1m
+        labels:
+          severity: critica
+        annotations:
+          summary: "El microservicio no responde"
+          description: "Prometheus no logra scrapear el microservicio hace mas de 1 minuto."
+
+      # Tasa de errores 5xx elevada
+      - alert: TasaErrores5xxAlta
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) > 0.5
+        for: 2m
+        labels:
+          severity: alta
+        annotations:
+          summary: "Tasa de errores 5xx elevada"
+          description: "El microservicio supera 0.5 errores 5xx por segundo en los ultimos 5 min."
+
+      # Latencia p95 alta
+      - alert: LatenciaAlta
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 2m
+        labels:
+          severity: media
+        annotations:
+          summary: "Latencia p95 > 1s"
+          description: "El percentil 95 de latencia supera 1 segundo."

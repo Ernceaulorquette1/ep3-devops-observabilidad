@@ -3,7 +3,9 @@
 Extensión del pipeline DevOps de la EP2, incorporando **observabilidad** (monitoreo, logging y métricas), **dashboards** y **validación de cumplimiento normativo** dentro del ciclo CI/CD.
 
 > Asignatura: Ingeniería DevOps (DOY0101) · Evaluación Parcial N°3 (30%) · Trabajo en parejas
-
+Integrantes
+Integrante 1: ERNCEAU LORQUETTE
+Integrante 2: Remy wildeije
 ---
 
 ## 1. ¿Qué hace este proyecto?

@@ -2,12 +2,12 @@
 # Dockerfile multi-etapa - Microservicio EP3 (heredado de EP2)
 # Imagen slim + usuario no-root + healthcheck (buenas practicas IE2)
 # ============================================================
-FROM python:3.12-slim AS build
+FROM python:3.14-slim AS build
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 WORKDIR /app
 
 # Copia dependencias ya compiladas desde la etapa build

@@ -1,15 +1,13 @@
 # ============================================================
-# Stack de observabilidad EP3 (entorno simulado local)
-#   - microservicio  : la app FastAPI instrumentada
-#   - prometheus     : recolecta metricas desde /metrics (IE1)
-#   - grafana        : dashboards con las metricas clave (IE3)
-# Levantar con:  docker compose up --build
-#   App        -> http://localhost:8000
-#   Metricas   -> http://localhost:8000/metrics
-#   Prometheus -> http://localhost:9090
-#   Grafana    -> http://localhost:3000  (admin / admin)
+# Stack de observabilidad EP3
+# App        -> http://localhost:8000
+# Métricas   -> http://localhost:8000/metrics
+# Prometheus -> http://localhost:9090
+# Grafana    -> http://localhost:3001  (admin / admin)
 # ============================================================
+
 services:
+
   microservicio:
     build: .
     container_name: microservicio-ep3
@@ -40,7 +38,7 @@ services:
     image: grafana/grafana:11.2.0
     container_name: grafana-ep3
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=admin

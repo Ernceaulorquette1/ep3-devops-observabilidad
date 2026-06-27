@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Descargar codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -66,7 +66,7 @@ jobs:
 
     steps:
       - name: Descargar codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -105,7 +105,7 @@ jobs:
 
     steps:
       - name: Descargar codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Snyk - escaneo de dependencias
         uses: snyk/actions/python@master
@@ -126,7 +126,7 @@ jobs:
 
     steps:
       - name: Descargar codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Build de la imagen Docker
         run: |
@@ -151,7 +151,7 @@ jobs:
 
     steps:
       - name: Descargar codigo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Login a GitHub Container Registry
         run: |

@@ -159,7 +159,10 @@ jobs:
         run: |
           INICIO=$(date +%s)
 
-          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/microservicio-ep3:latest
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_NAME=ghcr.io/$OWNER/microservicio-ep3:latest
+
+          echo "Construyendo imagen: $IMAGE_NAME"
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
